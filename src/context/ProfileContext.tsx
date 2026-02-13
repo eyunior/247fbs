@@ -58,10 +58,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (!user) return { error: new Error('Not authenticated') }
 
     // Serialize arrays to JSON strings for Supabase text columns
+    // Exclude is_admin so we never overwrite it from the client
+    const { is_admin: _ignoreAdmin, ...safeDefaults } = defaultProfile
+    const { is_admin: _ignoreAdminData, ...safeData } = data as Record<string, unknown>
     const row = {
       id: user.id,
-      ...defaultProfile,
-      ...data,
+      ...safeDefaults,
+      ...safeData,
       equipment_types: JSON.stringify(data.equipment_types ?? defaultProfile.equipment_types),
       preferred_states: JSON.stringify(data.preferred_states ?? defaultProfile.preferred_states),
       profile_completed: true,
