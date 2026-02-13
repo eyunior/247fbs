@@ -2,10 +2,34 @@ export type UserType = '' | 'shipper' | 'carrier'
 
 export type EquipmentType = 'dry_van' | 'reefer' | 'flatbed' | 'step_deck'
 
+export type ShipmentStatus = 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'delayed' | 'cancelled'
+
+export interface Shipment {
+  id: string
+  tracking_number: string
+  bol_number: string
+  user_id: string | null
+  status: ShipmentStatus
+  origin: string
+  destination: string
+  pickup_date: string | null
+  delivery_date: string | null
+  estimated_arrival: string | null
+  equipment_type: string
+  weight: number | null
+  commodity: string
+  carrier_name: string
+  shipper_name: string
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
 export interface UserProfile {
   id: string
   user_type: UserType
   profile_completed: boolean
+  is_admin: boolean
 
   // Common fields
   first_name: string
@@ -51,6 +75,7 @@ export interface UserProfile {
 export const defaultProfile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'> = {
   user_type: '',
   profile_completed: false,
+  is_admin: false,
   first_name: '',
   last_name: '',
   phone: '',

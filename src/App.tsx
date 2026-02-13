@@ -7,6 +7,10 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AccountSetup from './pages/AccountSetup'
 import Settings from './pages/Settings'
+import RequestQuote from './pages/RequestQuote'
+import TrackShipment from './pages/TrackShipment'
+import ContactSupport from './pages/ContactSupport'
+import Admin from './pages/Admin'
 
 function App() {
   return (
@@ -37,6 +41,38 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quote"
+              element={
+                <ProtectedRoute>
+                  <RequestQuote />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/track"
+              element={
+                <ProtectedRoute>
+                  <TrackShipment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support"
+              element={
+                <ProtectedRoute>
+                  <ContactSupport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
                 </ProtectedRoute>
               }
             />

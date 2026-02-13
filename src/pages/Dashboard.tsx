@@ -1,10 +1,32 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../context/ProfileContext'
+import { supabase } from '../lib/supabaseClient'
+import type { Shipment, ShipmentStatus } from '../types/profile'
+
+const statusCfg: Record<ShipmentStatus, { label: string; color: string; bg: string }> = {
+  pending: { label: 'Pending', color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  picked_up: { label: 'Picked Up', color: 'text-blue-700', bg: 'bg-blue-100' },
+  in_transit: { label: 'In Transit', color: 'text-indigo-700', bg: 'bg-indigo-100' },
+  delivered: { label: 'Delivered', color: 'text-green-700', bg: 'bg-green-100' },
+  delayed: { label: 'Delayed', color: 'text-red-700', bg: 'bg-red-100' },
+  cancelled: { label: 'Cancelled', color: 'text-gray-700', bg: 'bg-gray-200' },
+}
 
 const Dashboard = () => {
   const { user, signOut } = useAuth()
   const { profile } = useProfile()
+  const [recentShipments, setRecentShipments] = useState<Shipment[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('shipments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => { if (data) setRecentShipments(data as Shipment[]) })
+  }, [])
 
   const handleSignOut = async () => {
     await signOut()
@@ -142,12 +164,14 @@ const Dashboard = () => {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { title: 'Request Quote', desc: 'Get a freight quote', icon: 'M12 4v16m8-8H4', iconColor: 'text-primary', bgHover: 'group-hover:bg-primary/5' },
-              { title: 'Track Shipment', desc: 'Track your freight', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', iconColor: 'text-secondary', bgHover: 'group-hover:bg-secondary/5' },
-              { title: 'Contact Support', desc: '24/7 assistance', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', iconColor: 'text-green-600', bgHover: 'group-hover:bg-green-50' },
+              { title: 'Request Quote', desc: 'Get a freight quote', to: '/quote', icon: 'M12 4v16m8-8H4', iconColor: 'text-primary', bgHover: 'group-hover:bg-primary/5' },
+              { title: 'Track Shipment', desc: 'Track your freight', to: '/track', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', iconColor: 'text-secondary', bgHover: 'group-hover:bg-secondary/5' },
+              { title: 'Contact Support', desc: '24/7 assistance', to: '/support', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', iconColor: 'text-green-600', bgHover: 'group-hover:bg-green-50' },
+              ...(profile?.is_admin ? [{ title: 'Admin Panel', desc: 'Manage shipments', to: '/admin', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', iconColor: 'text-purple-600', bgHover: 'group-hover:bg-purple-50' }] : []),
             ].map((action) => (
-              <button
+              <Link
                 key={action.title}
+                to={action.to}
                 className={`group flex items-center gap-4 p-4 rounded-xl border border-border-color hover:border-transparent hover:shadow-card transition-all duration-300 ${action.bgHover}`}
               >
                 <div className="w-10 h-10 rounded-lg bg-background-alt flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
@@ -159,7 +183,7 @@ const Dashboard = () => {
                   <p className="font-semibold text-heading-color text-sm">{action.title}</p>
                   <p className="text-xs text-foreground">{action.desc}</p>
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -264,19 +288,40 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Recent Activity placeholder */}
+            {/* Recent Activity — real shipment data */}
             <div className="card p-6 animate-fade-in-up animate-delay-400">
               <h2 className="text-lg font-bold text-heading-color mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Recent Activity
+                Recent Shipments
               </h2>
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="w-16 h-16 rounded-full bg-background-alt flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              {recentShipments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-16 h-16 rounded-full bg-background-alt flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  </div>
+                  <p className="text-foreground font-medium">No recent activity</p>
+                  <p className="text-sm text-foreground/60 mt-1">Your shipments and quotes will appear here</p>
                 </div>
-                <p className="text-foreground font-medium">No recent activity</p>
-                <p className="text-sm text-foreground/60 mt-1">Your shipments and quotes will appear here</p>
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentShipments.map((s) => {
+                    const sc = statusCfg[s.status] ?? statusCfg.pending
+                    return (
+                      <Link key={s.id} to="/track" className="flex items-center gap-3 p-3 rounded-xl hover:bg-background-alt transition-colors group">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.bg.replace('bg-', 'bg-').replace('100', '500').replace('200', '500')}`} style={{ backgroundColor: sc.color === 'text-green-700' ? '#15803d' : sc.color === 'text-yellow-700' ? '#a16207' : sc.color === 'text-indigo-700' ? '#4338ca' : sc.color === 'text-blue-700' ? '#1d4ed8' : sc.color === 'text-red-700' ? '#b91c1c' : '#6b7280' }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-heading-color">{s.tracking_number}</p>
+                          <p className="text-xs text-foreground truncate">{s.origin} → {s.destination}</p>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.color} ${sc.bg}`}>{sc.label}</span>
+                      </Link>
+                    )
+                  })}
+                  <Link to="/track" className="block text-center text-sm text-primary font-semibold hover:text-primary-light transition-colors pt-2">
+                    View All Shipments →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
